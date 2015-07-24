@@ -4,7 +4,7 @@
 pbr==1.3.0
 mock==1.2.0
 six==1.9.0
-distribute==0.6.49
+distribute==0.6.28 #this version for matplotlib (not the current version!)
 argparse==1.2.1
 decorator==3.4.2
 funcsigs==0.4
@@ -20,6 +20,7 @@ Pillow==2.9.0
 numpy==1.9.2
 scipy==0.15.1
 ipython==3.2.1
+pandas==0.16.2
 #matplotlib==1.4.3 #need to get a few things installed before this (numpy, distribute etc.)
 scikit-image==0.11.3 #need to install matplotlib before this...
 scikit-learn==0.16.1
