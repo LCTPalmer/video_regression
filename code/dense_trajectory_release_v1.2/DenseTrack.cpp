@@ -20,6 +20,13 @@ int main(int argc, char** argv)
 		fprintf(stderr, "Could not initialize capturing..\n");
 		return -1;
 	}
+	
+	/*
+	//record output -initialise video
+	int f_width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
+	int f_height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+	VideoWriter clip("out.avi", CV_FOURCC('M', 'J', 'P', 'G'), 30, Size(f_width, f_height), true) ;
+	*/
 
 	int frame_num = 0;
 	TrackInfo trackInfo;
@@ -226,6 +233,7 @@ int main(int argc, char** argv)
 
 		if( show_track == 1 ) {
 			imshow( "DenseTrack", image);
+			//clip.write(image);
 			c = cvWaitKey(3);
 			if((char)c == 27) break;
 		}

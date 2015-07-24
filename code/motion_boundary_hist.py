@@ -6,17 +6,15 @@ from skimage.feature import hog
 #inputs
 video_address = '../data/walking_ex1.avi'
 #spatial scaling factor
-scale_fac = (.5, .5)
+scale_fac = (0.15, 0.15)
 #temporal resolution - nth frame
 temp_res = 5
 #hog params
 hp = dict(orientations=6, pixels_per_cell=(16,16), cells_per_block=(1,1), visualise=False)
 #optical flow params
-ofp = dict(orientations=6, pixels_per_cell=(16,16), cells_per_block=(1,1), visualise=False)
-
+ofp = dict(pyr_scale=0.5, levels=3, winsize=5, iterations=3, poly_n=3, poly_sigma=3, flags=False)
 
 #the function:
-
 #open the video capture stream
 cap = cv2.VideoCapture(video_address)
 
@@ -27,7 +25,9 @@ MBH = []#initialise list for building MBH
 [ret, frame2] = cap.read()
 
 #loop through frames - check that a frame has been returned by .read
-while(ret):
+frame_num=0
+while(frame_num<15):
+    frame_num += 1
 
     #resize and convert the frames to grayscale
     frame1 = cv2.resize(frame1, (0,0), fx = scale_fac[0], fy = scale_fac[1])
@@ -36,7 +36,8 @@ while(ret):
     next = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
 
     #calculate dense optical flow betweek frames
-    flow = cv2.calcOpticalFlowFarneback(prvs, next, 0.5, 3, 5, 3, 3, 1, False)
+    #flow = cv2.calcOpticalFlowFarneback(prvs, next, 0.5, 3, 5, 3, 3, 1, False)
+    flow = cv2.calcOpticalFlowFarneback(prev=prvs, next=next, **ofp)
 
     #calculate HOG of flow images (x and y separately) to give MBH
     hog_x = hog(flow[...,0], **hp)

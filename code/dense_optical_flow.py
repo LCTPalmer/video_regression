@@ -17,7 +17,7 @@ prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
 hsv = np.zeros_like(frame1)
 hsv[...,1] = 255
 
-while(1):
+while(ret):
     ret, frame2 = cap.read()
     frame2 = cv2.resize(frame2, (0,0), fx = scale_fac, fy = scale_fac)
     next = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)

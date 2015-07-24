@@ -2,15 +2,15 @@ import numpy as np
 import cv2
 import time
 
-#cap = cv2.VideoCapture("walking_ex1.avi")
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("../data/walking_ex1.avi")
+#cap = cv2.VideoCapture(0)
 time.sleep(1)
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = 20,
-                       qualityLevel = 0.3,
-                       minDistance = 7,
-                       blockSize = 7 )
+                       qualityLevel = 0.1,
+                       minDistance = 1,
+                       blockSize = 1 )
 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15,15),
@@ -28,7 +28,7 @@ p0 = cv2.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
-while(1):
+while(ret):
     ret,frame = cap.read()
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
