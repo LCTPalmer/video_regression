@@ -1,21 +1,27 @@
-Pillow==2.9.0
+#in approximate order (need to refine)
+
+#basics
+pbr==1.3.0
+mock==1.2.0
+six==1.9.0
+distribute==0.6.49
 argparse==1.2.1
 decorator==3.4.2
 funcsigs==0.4
-ipython==3.2.1
-matplotlib==1.4.3
-mock==1.2.0
 networkx==1.9.1
 nose==1.3.7
-numpy==1.9.2
-pbr==1.3.0
 pyparsing==2.0.3
 python-dateutil==2.4.2
 pytz==2015.4
-scikit-image==0.11.3
-scikit-learn==0.16.1
-scipy==0.15.1
-six==1.9.0
 wsgiref==0.1.2
+
+#more heavy duty packages
+Pillow==2.9.0
+numpy==1.9.2
+scipy==0.15.1
+ipython==3.2.1
+#matplotlib==1.4.3 #need to get a few things installed before this (numpy, distribute etc.)
+scikit-image==0.11.3 #need to install matplotlib before this...
+scikit-learn==0.16.1
 #need to sudo apt-get install liblapack-dev before scipy
 
