@@ -2,48 +2,47 @@ import os
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.externals import joblib
-from extract_dt import trajectory_generator, trajectory_split 
+from extract_dt import trajectory_generator, trajectory_split, FeatureDict
+from load_hollywood import load_data
+
+#BoF params
+n_clusters = 4000 
+save_dir = './codebook' #where to save the codebooks
 
 #video file list
-videos = ['../test_sequences/low_res.ogv', '../test_sequences/low_res2.ogv']
+hollywood_dir = '/home/lukep86/Downloads/hollywood' #directory of the dataset
+dataset_type = 'train' #training set or test set
+videos, classes = load_data(hollywood_dir, dataset_type)
+#videos = ['../test_sequences/low_res.ogv', '../test_sequences/low_res2.ogv']
 
 #sampling strategy
-#take 50 trajectories from each video -> prob per trajectory of 100,000/4,000,000 = 0.025
-threshold = 0.025
+#take ~100,000 trajectories -> prob per trajectory of 100,000/2,000,000 = 0.05
+threshold = 0.05
 
-#initialise trajectory features structure 
-dt_features = ({'Trajectory': [],
-                      'HOG': [],
-                      'HOF': [],
-                      'MBHx': [],
-                      'MBHy': []
-                      })
+#instantiate trajectory features object
+dtf = FeatureDict()
 
 for ii,video in enumerate(videos):
     print 'processing video %i of %i' % (ii+1, len(videos))
     t = trajectory_generator(video=video) #instantiate generator
-    line = t.next()
-    while line:
+    trajectory = t.next()
+    t_cnt = 0
+    while trajectory:
         if np.random.rand() < threshold:
-            features = trajectory_split(line)
-            dt_features['Trajectory'].append(features[0])
-            dt_features['HOG'].append(features[1])
-            dt_features['HOF'].append(features[2])
-            dt_features['MBHx'].append(features[3])
-            dt_features['MBHy'].append(features[4])
-        line = t.next()
+            dtf.add_trajectory(trajectory)
+        t_cnt += 1
+        trajectory = t.next()
+    print 'contained %i trajectories' % t_cnt
 
 #clustering
 model_dict = {}
-n_clusters = 10 
-for feature in dt_features:
-	X = np.array(dt_features[feature])
+for feature in dtf.feature_dict:
+	X = np.array(dtf.feature_dict[feature])
 	print 'clustering %s features' % feature + ' of dimension: ',X.shape 
 	model_dict[feature] = KMeans(n_clusters=n_clusters).fit(X)
 	print 'done'
 
 #save the models
-save_dir = './codebook' #where to save the codebooks
 if not os.path.isdir(save_dir):
 	os.mkdir(save_dir)
 joblib.dump(model_dict, save_dir + '/model_dict.pkl')
