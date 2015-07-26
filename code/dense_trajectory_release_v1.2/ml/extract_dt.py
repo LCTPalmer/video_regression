@@ -87,7 +87,8 @@ class FeatureDict(object):
         features = trajectory_split(trajectory, dtp=dtp)
         assert len(features) == len(self.feature_dict)
         for feature in self.feature_dict:
-            self.add_element(feature, features[feature])
+            #self.add_element(feature, features[feature])
+            self.feature_dict[feature].append(features[feature])
 
     def calc_sums(self, normalise=False):
         #calculate the sum of lists/csr_matrices 

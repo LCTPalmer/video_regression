@@ -12,7 +12,7 @@ save_dir = './codebook' #where to save the codebooks
 #video file list
 hollywood_dir = '/home/lukep86/Downloads/hollywood' #directory of the dataset
 dataset_type = 'train' #training set or test set
-videos, classes = load_data(hollywood_dir, dataset_type)
+videos, frame_ranges, classes = load_data(hollywood_dir, dataset_type)
 #videos = ['../test_sequences/low_res.ogv', '../test_sequences/low_res2.ogv']
 
 #sampling strategy
@@ -22,9 +22,10 @@ threshold = 0.05
 #instantiate trajectory features object
 dtf = FeatureDict()
 
-for ii,video in enumerate(videos):
-    print 'processing video %i of %i' % (ii+1, len(videos))
-    t = trajectory_generator(video=video) #instantiate generator
+for ii, (video, frame_range) in enumerate(zip(videos,frame_ranges), start=1):
+    print 'processing video %i of %i' % (ii, len(videos))
+    dtp = ['-S', frame_range[0], '-E', frame_range[1], '-W', '10']#start and end frames
+    t = trajectory_generator(video=video, dtp_terminal=dtp) #instantiate generator
     trajectory = t.next()
     t_cnt = 0
     while trajectory:

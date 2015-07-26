@@ -9,13 +9,16 @@ def load_data(hollywood_dir, dataset_type):
 
     #read through the annotation file
     video_list = []
+    frames_list = []
     class_list = []
     with open(anno_file, 'rb') as f:
         line = f.readline()
         while line:
             current_video = re.search('"(.*)"', line).groups()[0]
+            current_frames = re.search('\((.*)-(.*)\)', line).groups()#keep the whole tuple
             current_class = re.search('<(.*)>', line).groups()[0]
             video_list.append(video_root + current_video)
+            frames_list.append(current_frames)
             class_list.append(current_class)
             line = f.readline()
-    return video_list, class_list
+    return video_list, frames_list, class_list
