@@ -40,7 +40,7 @@ codebook_dir = './codebook'
 model_dict = joblib.load(codebook_dir + '/model_dict.pkl')
 #video file list
 hollywood_dir = '/home/lpa8529/projects/Downloads/hollywood' #directory of the dataset
-dataset_type = 'train' #training set or test set ('train' or 'test')
+dataset_type = 'test' #training set or test set ('train' or 'test')
 videos, frame_ranges, labels = load_data(hollywood_dir, dataset_type)
 dt_dataset = FeatureDict(feature_list = ['Trajectory', 'HOG', 'HOF', 'MBHx', 'MBHy', 'Label']) #initialise structure with Label field
 reject_list = [] #list of clips not processed
