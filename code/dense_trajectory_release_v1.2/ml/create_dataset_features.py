@@ -23,6 +23,7 @@ def video_describe(video, model_dict, dtp_terminal):
 	for feature in dt_vid.feature_dict:
 		#assign cluster value to each trajectory
 		cur = np.array(dt_vid.feature_dict[feature])#turn into numpy array for OHE and KMeans
+		print feature, cur.shape
 		feature_cluster = np.reshape(model_dict[feature].predict(cur), (cur.shape[0], 1))#reshape - keep rows as rows for OHE
 		#extract OHE features
 		ohe = OneHotEncoder(n_values=model_dict[feature].get_params()['n_clusters']) #instantiate a OHE model
@@ -40,7 +41,7 @@ codebook_dir = './codebook'
 model_dict = joblib.load(codebook_dir + '/model_dict.pkl')
 #video file list
 hollywood_dir = '/home/lpa8529/projects/Downloads/hollywood' #directory of the dataset
-dataset_type = 'test' #training set or test set ('train' or 'test')
+dataset_type = 'train' #training set or test set ('train' or 'test')
 videos, frame_ranges, labels = load_data(hollywood_dir, dataset_type)
 dt_dataset = FeatureDict(feature_list = ['Trajectory', 'HOG', 'HOF', 'MBHx', 'MBHy', 'Label']) #initialise structure with Label field
 reject_list = [] #list of clips not processed

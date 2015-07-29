@@ -1,6 +1,6 @@
 from __future__ import division
-#functions to call DenseTrack binary through python. line_to_dict
-#converts the DenseTrack output to python lists line-by-line
+#functions to call DenseTrack binary through python. 
+#converts the DenseTrack output to  a python dict of lists, separated by feature type
 import re
 import subprocess
 from scipy.sparse import vstack
@@ -22,6 +22,7 @@ dtp_terminal = (['-W', str(dtp['stride']),
                  '-t', str(dtp['time_cells'])
                  ]) 
 
+#generator function for reading terminal output
 def trajectory_generator(video, dt_bin=dt_bin, dtp_terminal=dtp_terminal):
     proc = subprocess.Popen([dt_bin, video] + dtp_terminal, stdout=subprocess.PIPE)
     while True:
@@ -33,36 +34,25 @@ def trajectory_generator(video, dt_bin=dt_bin, dtp_terminal=dtp_terminal):
 
 def trajectory_split(trajectory, dtp=dtp):
 
-    #calculate the length of each feature
-    dtfl =               ({'Metadata': 10,
-                           'Trajectory': 2 * dtp['traj_length'],
-                           'HOG': 8 * dtp['spatial_cells']**2 * dtp['time_cells'],
-                           'HOF': 9 * dtp['spatial_cells']**2 * dtp['time_cells'],
-                           'MBHx': 8 * dtp['spatial_cells']**2 * dtp['time_cells'],
-                           'MBHy': 8 * dtp['spatial_cells']**2 * dtp['time_cells'],
-                           })
-    #get the index in the line for each feature
-    dtfi =               ({'Metadata': 0,
-                           'Trajectory': dtfl['Metadata'],
-                           'HOG': dtfl['Metadata']+dtfl['Trajectory'],
-                           'HOF': dtfl['Metadata']+dtfl['Trajectory']+dtfl['HOG'],
-                           'MBHx': dtfl['Metadata']+dtfl['Trajectory']+dtfl['HOG']+dtfl['HOF'],
-                           'MBHy': dtfl['Metadata']+dtfl['Trajectory']+dtfl['HOG']+dtfl['HOF']+dtfl['MBHx'],
-                           })
+	#calculate the length of each feature in this order: [metadata, trajectory, hog, hof, mbhx, mbhy]
+	cell_den = dtp['spatial_cells']**2 * dtp['time_cells']
+    dtfl =  [10, 2*dtp['traj_length'], 8*cell_den, 9*cell_den, 8*cell_den, 8*cell_den]            
+    #get the index in the line for each feature (in same order)
+	dtfi = [sum(dtfl[0:x]) for x in range(len(dtfl))]
 
-    #vectorise
+    #vectorise the trajectory
     line_vec = re.split(r'\t', trajectory)[:-1] #remove the /n newline
     line_vec = [float(x) for x in line_vec] #turn chars into floats
+
     #split line into feature types
     t_dict = {}
-    t_dict['Trajectory'] = line_vec[dtfi['Trajectory']:dtfi['HOG']]
-    t_dict['HOG'] = line_vec[dtfi['HOG']:dtfi['HOF']]
-    t_dict['HOF'] = line_vec[dtfi['HOF']:dtfi['MBHx']]
-    t_dict['MBHx'] = line_vec[dtfi['MBHx']:dtfi['MBHy']]
-    t_dict['MBHy'] = line_vec[dtfi['MBHy']:]
+	features = ['Trajectory', 'HOG', 'HOF','MBHx', 'MBHy']
+	for ii,feature in enumerate(features, start=1): #start from 1 as excluding metadata
+		t_dict[feature] = line_vec[dtfi[ii]:dtfi[ii]+dtfl[ii]]
+
     return t_dict 
 
-#class for holding and manipulating dt features
+#simple class for holding and adding dt features
 class FeatureDict(object):
     def __init__(self, feature_list = ['Trajectory', 'HOG', 'HOF','MBHx', 'MBHy'], sparse=False):
         self.sparse = sparse #to handle OHE
@@ -89,14 +79,3 @@ class FeatureDict(object):
         for feature in self.feature_dict:
             #self.add_element(feature, features[feature])
             self.feature_dict[feature].append(features[feature])
-
-    def calc_sums(self, normalise=False):
-        #calculate the sum of lists/csr_matrices 
-        for feature in self.feature_dict:
-            if not self.sparse:
-                self.feature_sums[feature] = [sum(x) for x in zip(*self.feature_dict[feature])]
-            else:
-                self.feature_sums[feature] = vstack(self.feature_dict[feature]).sum(axis=0).tolist()[0]
-            if normalise:
-                s = sum(self.feature_sums[feature])
-                self.feature_sums[feature] = [x/s for x in self.feature_sums[feature]]
