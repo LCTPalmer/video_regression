@@ -1,52 +1,54 @@
 #train a regressor
 import numpy as np
-import scipy.sparse
-from sklearn.preprocessing import OneHotEncoder
+from sklearn import cross_validation
+from sklearn.preprocessing import OneHotEncoder, normalize
 from sklearn.externals import joblib
-from extract_dt import trajectory_generator, trajectory_split, FeatureDict
+from sklearn.linear_model import LogisticRegression
+from hyperopt import hp, fmin, tpe, space_eval, Trials
+import os
 
-def video_descibe(video, model_dict):
-    #encode a video into dense trajectory BoF features (using model_dict codebook learned previously)
-    ohe = OneHotEncoder(n_values=model_dict['HOG'].get_params()['n_clusters']) #all models have same n_clusters
-    t = trajectory_generator(video) #instantiate the trajectory generator
-    trajectory = t.next() #generate the first trajectory
-    #initialise the ohe trajectory features structure 
-    dt_bof = FeatureDict(sparse=True)
-    while trajectory:
-        
-        #get raw features of video
-        features  = trajectory_split(trajectory)
-
-        #loop through features, assigning cluster number
-        for feature in features:
-            #feature_cluster.append(model_dict[feature].predict(features[feature])[0])
-            feature_cluster = model_dict[feature].predict(features[feature])[0]
-            bof_rep = ohe.fit_transform(feature_cluster)
-            dt_bof.add_element(feature=feature, element=bof_rep)#add to list
-            
-        #generate next trajectory
-        trajectory = t.next()
-
-    #take the sum across trajectories as the video representation
-    dt_bof.calc_sums(normalise=True)
-    return dt_bof.feature_sums
-
-###
-#generate the dataset for input to sklearn learners
-###
-
-#load codebook model
-save_dir = './codebook'
-model_dict = joblib.load(save_dir + '/model_dict.pkl')
-#video list
-videos = ['../test_sequences/low_res.ogv', '../test_sequences/low_res2.ogv']
-dt_dataset = FeatureDict() #initialise structure (here each list is a video)
-for ii,video in enumerate(videos):
-    print 'processing video %i of %i' % (ii+1, len(videos))
-    descriptors = video_descibe(video, model_dict)
-    for feature in descriptors:
-        dt_dataset.add_element(feature, descriptors[feature])
-    
+#load datasets
+dataset_file = './dataset/train.pkl' #since we're training the classifier
+assert os.path.isfile(dataset_file), 'specified dataset file does not exist'
+dt = joblib.load(dataset_file)
 
 
+#experimenting with hyperopt
 
+#the objective for hyperopt to minimise
+def objective(args, data):
+	l2_param = args
+	#define the model
+	model = LogisticRegression(penalty='l2', C=l2_param)
+	#get score from cv on training data
+	scores = cross_validation.cross_val_score(model, data['features'], data['labels'], cv=3)
+	error_rate = 1 - scores.mean()
+	return error_rate #minimise the error rate
+
+#set the space
+space = [(hp.uniform('l2_param', 0, 1))]
+	
+#search
+trials = Trials()
+c = 10
+
+#prepare the data
+data = {}
+X = np.array(dt.feature_dict['Trajectory']); X = normalize(X, axis=1, norm='l2')
+print X.shape
+y = dt.feature_dict['Label']; y = [y[el][0] for el in range(len(y))]; y = np.array(y)
+print y.shape, y[:5]
+data['features'] = X
+data['labels'] = y
+
+best = fmin(fn=lambda args: objective(args,data), space=space, algo=tpe.suggest, max_evals=2, trials=trials)
+
+#report results
+print best
+print space_eval(space, best)
+#print trials.trials
+
+'''
+feature = 'Trajectory' #try only with trajectory to begin
+X = np.array(dt.feature_dict[feature])
+'''
