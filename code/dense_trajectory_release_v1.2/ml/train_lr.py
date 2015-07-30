@@ -4,7 +4,9 @@ from sklearn import cross_validation
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, normalize
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from hyperopt import hp, fmin, tpe, space_eval, Trials
+from hyperopt.pyll import scope
 import os
 
 #load datasets
@@ -17,16 +19,27 @@ dt = joblib.load(dataset_file)
 
 #the objective for hyperopt to minimise
 def objective(args, data):
-	(reg_type, reg_param) = args
-	#define the model
-	model = LogisticRegression(penalty=reg_type, C=reg_param)
+	print args
+	model = args
 	#get score from cv on training data
 	scores = cross_validation.cross_val_score(model, data['features'], data['labels'], cv=3)
 	error_rate = 1-scores.mean()
-	return error_rate #minimise the error rate
+	neg_acc = -scores.mean()
+	return neg_acc #error_rate #minimise the error rate
+
+#scope classifiers (hyperopt can then instantiate them)
+scope.define(LogisticRegression)
+scope.define(SVC)
 
 #set the space
-space = [hp.choice('reg', ['l1', 'l2']), hp.uniform('reg_param', 0, 100)]
+space = hp.pchoice('estimator', [
+	(0.5, scope.LogisticRegression(
+		penalty=hp.choice('reg_type', ['l2', 'l2']), C=hp.lognormal('reg_param', 0, 1)
+		)),
+	(0.5, scope.SVC(kernel='rbf', C=hp.loguniform('svc_C', 0, 10)-1, gamma=hp.loguniform('svc_rbf_gamma', 0, 1)-1
+		))
+	])
+
 	
 #search
 trials = Trials()
