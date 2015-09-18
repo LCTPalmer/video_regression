@@ -7,8 +7,9 @@ from scipy.sparse import vstack
 import scipy.sparse
 
 #set default parameters
-dt_bin = '../release/DenseTrack' #location of the DenseTrack binary
-dtp = ({'-W': 10, #stride
+dt_bin = '../improved_trajectory_release/release/DenseTrackStab' #location of the DenseTrack binary
+#dt_bin = '../dense_trajectory_release_v1.2/release/DenseTrack'
+dtp = ({'-W': 5, #stride
         '-L': 15, #trajectory length in frames
         '-N': 32, #neighbourhood size
         '-s': 2,  #spatial cell resolution

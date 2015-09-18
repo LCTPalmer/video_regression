@@ -47,13 +47,13 @@ trials = Trials()
 #prepare the data
 data = {}
 X = np.array(dt.feature_dict['Trajectory']); X = normalize(X, axis=1, norm='l2')
-y = dt.feature_dict['Label']; y = [y[el][0] for el in range(len(y))]; y = np.array(y)
+y = dt.feature_dict['Label']; y = [y[elem][0] for elem in range(len(y))]; y = np.array(y)
 le = LabelEncoder()
 y_t = le.fit_transform(y)
 data['features'] = X
 data['labels'] = y_t
 
-best = fmin(fn=lambda args: objective(args,data), space=space, algo=tpe.suggest, max_evals=200, trials=trials)
+best = fmin(fn=lambda args: objective(args,data), space=space, algo=tpe.suggest, max_evals=10, trials=trials)
 loss_hist = [trials.trials[t]['result']['loss'] for t in range(len(trials.trials))]
 #report results
 print best
