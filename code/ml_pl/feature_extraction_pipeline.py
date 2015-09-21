@@ -5,8 +5,8 @@ from bof_feature_extraction import sample_trajectories, cluster_trajectories, fe
 
 #setup
 pipeline = {
-			'sample_trajectories': {'return': True, 'load_precalc': False}, 
-			'learn_codebook': {'return': True, 'load_precalc': False},
+			'sample_trajectories': {'return': True, 'load_precalc': True}, 
+			'learn_codebook': {'return': True, 'load_precalc': True},
 			'extract_features': {'return': True, 'load_precalc': False},
 			}
 
