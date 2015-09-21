@@ -14,8 +14,8 @@ pipeline = {
 ###--- PARAMS ---###
 ###dataset###
 dataset_path = './raw_data' #directory containing the videos
-train_files = './traintest_split/train_files.txt'
-test_files = './traintest_split/test_files.txt'
+train_files = './traintest_split/train_files_noduds.txt'
+test_files = './traintest_split/test_files_noduds.txt'
 
 #create the full lists of videos
 train_videos = []
