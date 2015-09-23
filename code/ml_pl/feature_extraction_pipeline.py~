@@ -29,7 +29,7 @@ with open(test_files, 'rb') as f:
 		test_videos.append(os.path.join(videos_path, video_name[:-1]))
 
 #SAMPLING TRAJECTORIES
-ratio = .0018 #what proportion of the trajectories in the whole training set to use to learn the codebook
+ratio = .0018 #what proportion of the trajectories in the whole training set to use to make the codebook
 sample_save_dir = './codebook' #where to save the samples
 if not os.path.isdir(sample_save_dir):
 	os.mkdir(sample_save_dir)

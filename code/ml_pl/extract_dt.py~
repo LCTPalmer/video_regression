@@ -1,5 +1,5 @@
 from __future__ import division
-#functions to call DenseTrack(Stab) binary through python. 
+#functions to call DenseTrack binary through python. 
 #converts the DenseTrack output to  a python dict of lists, separated by feature type
 import re
 import subprocess

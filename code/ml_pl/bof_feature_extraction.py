@@ -62,29 +62,34 @@ def cluster_trajectories(dtf, n_clusters=4000, save_dir='./codebook', model_save
 
 ###--- EXTRACTING THE DATASET USING A CODEBOOK ---###
 
+#define feature extraction functions for one video 
+def video_describe(video, model_dict):
+	t = trajectory_generator(video=video) #instantiate the trajectory generator
+	trajectory = t.next() #generate the first trajectory
+	dt_vid = FeatureDict() #structure for video trajectories
+	t_cnt = 0
+	while trajectory:
+		t_cnt += 1
+		dt_vid.add_trajectory(trajectory)
+		trajectory = t.next()
+
+	#report how many trajectories
+	print 'video contained {0} trajectories'.format(t_cnt)
+
+	dt_bof = FeatureDict() #structure for OHE features output
+	#loop through features, assigning cluster number
+	for feature in model_dict:
+		#assign cluster value to each trajectory
+		cur = np.array(dt_vid.feature_dict[feature])#turn into numpy array for OHE and KMeans
+		feature_cluster = np.reshape(model_dict[feature].predict(cur), (cur.shape[0], 1))#reshape - keep rows as rows for OHE
+		#extract OHE features
+		ohe = OneHotEncoder(n_values=model_dict[feature].get_params()['n_clusters']) #instantiate a OHE model
+		bof_sum = ohe.fit_transform(feature_cluster).sum(axis=0).tolist()[0]
+		dt_bof.feature_dict[feature] = bof_sum 
+
+	return dt_bof.feature_dict
+
 def feature_extract(videos, model_dict, labels=False, save_dir='./dataset', dataset_name='train_set.pkl', load_precalc=True):
-
-	#define function for one video 
-	def video_describe(video, model_dict):
-		t = trajectory_generator(video=video) #instantiate the trajectory generator
-		trajectory = t.next() #generate the first trajectory
-		dt_vid = FeatureDict() #structure for video trajectories
-		while trajectory:
-			dt_vid.add_trajectory(trajectory)
-			trajectory = t.next()
-
-		dt_bof = FeatureDict() #structure for OHE features output
-		#loop through features, assigning cluster number
-		for feature in dt_vid.feature_dict:
-			#assign cluster value to each trajectory
-			cur = np.array(dt_vid.feature_dict[feature])#turn into numpy array for OHE and KMeans
-			feature_cluster = np.reshape(model_dict[feature].predict(cur), (cur.shape[0], 1))#reshape - keep rows as rows for OHE
-			#extract OHE features
-			ohe = OneHotEncoder(n_values=model_dict[feature].get_params()['n_clusters']) #instantiate a OHE model
-			bof_sum = ohe.fit_transform(feature_cluster).sum(axis=0).tolist()[0]
-			dt_bof.feature_dict[feature] = bof_sum 
-
-		return dt_bof.feature_dict
 
 	if load_precalc:
 		if os.path.isfile(os.path.join(save_dir, dataset_type)):
@@ -99,6 +104,7 @@ def feature_extract(videos, model_dict, labels=False, save_dir='./dataset', data
 		#loop through videos adding descriptors to dt structure
 		for ii, video in enumerate(videos, start=1):
 			print 'extracting features from video {0} of {1}'.format(ii, len(videos))
+			print 'video path: {0}'.format(video)
 			#generate the video descriptors
 			descriptors = video_describe(video=video, model_dict=model_dict)
 			#add the descriptors for each feature to the dataset struct
