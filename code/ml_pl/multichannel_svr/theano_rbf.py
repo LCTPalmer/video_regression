@@ -58,3 +58,32 @@ def theano_rbf(X, Y, gamma=.5):
     K = np.exp(-gamma * (x2 + y2 - 2*x_dot_y))
 
     return K
+
+def theano_rbf2(X, Y, gamma=.5):
+    #check dimensions
+    assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'
+
+    #define the symbolic vars
+    x = T.matrix('x')
+    y = T.matrix('y')
+
+    #dot product
+    x_dot_y = T.dot(x, y.T)
+
+    #x^2
+    x2 = T.tile(T.sum(x**2, axis=1)[:,None], [1, Y.shape[0]])
+
+    #y^2
+    y2 = T.tile(T.sum(y**2, axis=1)[None,:], [X.shape[0], 1])
+
+    #add together terms
+    raw_result = x2 + y2 - 2*x_dot_y
+
+    #exp, gamma
+    result = T.exp(-gamma * raw_result)
+
+    #compile the theano function
+    f = theano.function(inputs=[x, y], outputs=result)
+
+    #return the output
+    return f(X.astype('Float32'), Y.astype('Float32'))
