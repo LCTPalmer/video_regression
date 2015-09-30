@@ -2,7 +2,7 @@
 # kernel classification and regression with bag-of-features representations:
 #
 #            K(x,y) = e ^ ( -gamma .* Sum[ (xi-yi)^2 / (xi+yi) ] )
-#                                      i
+#                             i
 #
 # Tested against sklearn.metrics.pairwise.chi2_kernel(). For X = Y of 
 # size(1500,4000) is ~3.5x faster using a GeForce 560 Ti than sklearn on
