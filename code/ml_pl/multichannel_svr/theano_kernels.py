@@ -1,35 +1,50 @@
 # GPU/Theano implementations of common kernel functions
+#
+# Currently contains:
+#                     Radial Basis Function (theano_rbf)
+#                     Chi-Squared (theano_chi2)
+#
+# Requires: 
+#           Theano
+#           Numpy
 
 import theano
 import theano.tensor as T
 import numpy as np
 
-def theano_rbf(X, Y, gamma=.5):
-'''GPU implementation of radial basis function (RBF) kernel:
+def theano_rbf(X, Y=None, gamma=.5):
 
-           K(x,y) = e ^ ( -gamma .* ||x-y||^2 )
+    '''GPU implementation of radial basis function (RBF) kernel:
 
-Optimised by expanding the ||x-y||^2 term and calculating dot 
-products on GPU.
+               K(x,y) = e ^ ( -gamma .* ||x-y||^2 )
 
-Tested against sklearn.metrics.pairwise.rbf_kernel(). For X = Y of 
-size(1500,4000) is ~6x faster using a GeForce 560 Ti than sklearn on
-Intel Xeon W3520 quadcore CPU. 
+    Optimised by expanding the ||x-y||^2 term and calculating dot 
+    products on GPU.
 
-----------------------------------------------------------------------
+    Tested against sklearn.metrics.pairwise.rbf_kernel(). For X = Y of 
+    size(1500,4000) is ~6x faster using a GeForce 560 Ti than sklearn on
+    Intel Xeon W3520 quadcore CPU. 
 
-input: X - numpy array 2D
-                MxN array containing M observations of N features
+    ----------------------------------------------------------------------
 
-       Y - numpy array 2D
-                PxN array (note must have same number of columns as X)
+    usage:  K = theano_rbf(X, [Y=None, gamma=.5])
 
-   gamma - scalar
-        spread parameter for rbf kernel
+    input:  X - numpy array 2D
+                    MxN array containing M observations of N features
 
-output: K - numpy array 2D
-                MxP array of pairwise RBF similarities between
-                observations in X and Y'''
+            Y - numpy array 2D
+                    PxN array (note must have same number of columns as X)
+
+            gamma - scalar
+                    spread parameter for rbf kernel
+
+    output: K - numpy array 2D
+                    MxP array of pairwise RBF similarities between
+                    observations in X and Y
+    '''
+
+    #set Y - if None -> X
+    Y = Y or X
 
     #check dimensions
     assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'
@@ -58,31 +73,38 @@ output: K - numpy array 2D
 
     return K
 
-def theano_chi2(X, Y, gamma=1):
-'''GPU implementation of exponential chi-squared kernel - often used in 
-kernel classification and regression with bag-of-features representations:
+def theano_chi2(X, Y=None, gamma=1):
 
-           K(x,y) = e ^ ( -gamma .* Sum[ (xi-yi)^2 / (xi+yi) ] )
-                                     i
+    '''GPU implementation of exponential chi-squared kernel - often used in 
+    kernel classification and regression with bag-of-features representations:
 
-Tested against sklearn.metrics.pairwise.chi2_kernel(). For X = Y of 
-size(1500,4000) is ~3.5x faster using a GeForce 560 Ti than sklearn on
-Intel Xeon W3520 quadcore CPU. 
+               K(x,y) = e ^ ( -gamma .* Sum[ (xi-yi)^2 / (xi+yi) ] )
+                                         i
 
-----------------------------------------------------------------------
+    Tested against sklearn.metrics.pairwise.chi2_kernel(). For X = Y of 
+    size(1500,4000) is ~3.5x faster using a GeForce 560 Ti than sklearn on
+    Intel Xeon W3520 quadcore CPU. 
 
-input: X - numpy array 2D
-                MxN array containing M observations of N features
+    ----------------------------------------------------------------------
+    
+    usage:  K = theano_chi2(X, [Y=None, gamma=.5])
 
-       Y - numpy array 2D
-                PxN array (note must have same number of columns as X)
+    input:  X - numpy array 2D
+                    MxN array containing M observations of N features
 
-   gamma - scalar
-        spread parameter for chi-squared kernel
+            Y - numpy array 2D
+                    PxN array (note must have same number of columns as X)
 
-output: K - numpy array 2D
-                MxP array of pairwise chi-squared distances between
-                observations in X and Y'''
+            gamma - scalar
+                    spread parameter for chi-squared kernel
+
+    output: K - numpy array 2D
+                    MxP array of pairwise chi-squared distances between
+                    observations in X and Y
+    '''
+
+    #set Y - if None -> X
+    Y = Y or X
 
     #check dimensions
     assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'
