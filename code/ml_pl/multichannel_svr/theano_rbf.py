@@ -37,10 +37,12 @@ def theano_rbf(X, Y, gamma=.5):
     y = T.matrix('y')
 
     #scan over the rows of X, taking dot products
-    result, updates = theano.scan(lambda x_vec, y_mat: T.dot(x_vec, y_mat.T), 
-                                  outputs_info = None,
-                                  sequences = x,
-                                  non_sequences = y)
+    # result, updates = theano.scan(lambda x_vec, y_mat: T.dot(x_vec, y_mat.T), 
+    #                               outputs_info = None,
+    #                               sequences = x,
+    #                               non_sequences = y)
+    
+    result = T.dot(x,y.T)
 
     #compile the theano function
     f = theano.function(inputs=[x, y], outputs=result)
