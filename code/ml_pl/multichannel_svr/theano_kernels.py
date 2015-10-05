@@ -44,7 +44,8 @@ def theano_rbf(X, Y=None, gamma=.5):
     '''
 
     #set Y - if None -> X
-    Y = Y or X
+    if Y is None:
+        Y = X
 
     #check dimensions
     assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'
@@ -104,7 +105,8 @@ def theano_chi2(X, Y=None, gamma=1):
     '''
 
     #set Y - if None -> X
-    Y = Y or X
+    if Y is None:
+        Y = X
 
     #check dimensions
     assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'

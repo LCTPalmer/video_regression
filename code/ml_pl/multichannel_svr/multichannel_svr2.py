@@ -37,12 +37,17 @@ class MultiChannelSVR():
     def __init__(self, num_channels, param_dict={'C': 1}, gamma_tuple=None):
         self.num_channels = num_channels
         self.model = SVR(kernel='precomputed', **param_dict)
-        self.gamma_tuple = gamma_tuple or tuple([1] * num_channels) #spread param for each channel
+
+        if gamma_tuple is None:
+            self.gamma_tuple = tuple([1] * num_channels) #spread param for each channel
+        else:
+            self.gamma_tuple = gamma_tuple 
+
         assert len(self.gamma_tuple) == num_channels
     
     #multichannel kernel computation
     def multichannel_chi2(self, A, B, gram_type):
-        assert gram_type == 'fit' or gram_type == 'predict'
+        assert gram_type == 'fit' or gram_type == 'predict' or gram_type == 'comp'
         assert len(A) == len(B) == self.num_channels
         assert isinstance(A, tuple)
         assert isinstance(B, tuple)
@@ -57,22 +62,25 @@ class MultiChannelSVR():
         
         #fill the array
         for ii, (c_A, c_B, c_gamma) in enumerate(zip(A,B,self.gamma_tuple)): #c_A ~ channel in A
+            print ii
             
             #raw gram matrix for this channel
             k = chi2_kernel(c_A, c_B, gamma=c_gamma)
+
+            if gram_type == 'predict':
+                gram_array[:,:,ii] = k / self.scale_fac[ii]
             
-            if gram_type == 'fit': # need to build the scale_fac
+            elif gram_type == 'comp' or gram_type == 'fit': # need to build the scale_fac
                 
                 #compute the scale factor
                 current_scale_fac = np.mean(k, axis=None)
-                self.scale_fac.append(current_scale_fac)
-                
+
                 #add to the array
                 gram_array[:,:,ii] = k / current_scale_fac
-                
-            elif gram_type == 'predict':
-                gram_array[:,:,ii] = k / self.scale_fac[ii]
-        
+
+                if gram_type == 'fit': #add to self
+                    self.scale_fac.append(current_scale_fac)
+
         #make scale_fac immutable
         if gram_type == 'fit':
             self.scale_fac = tuple(self.scale_fac)
@@ -100,78 +108,21 @@ class MultiChannelSVR():
         K_test = self.multichannel_chi2(X, self.training_examples, gram_type='predict')
         return self.model.score(K_test, y)
 
-#multichannel k-fold cross-validation
-def multichannel_KFoldCV(model, X, y, n_folds=3, normalize=True, verbose=False):
-    #check data is multichannel
-    assert isinstance(X, tuple), 'multichannel input X must be a tuple'
-    #assert len(X)>1
-    #check model is MultiChannelSVR
-    assert isinstance(model, MultiChannelSVR), 'model must be instance of MultiChannelSVR class'
-    
-    #number of samples
-    n_X = X[0].shape[0]
-    
-    #generate the k-folds
-    kf = KFold(n_X, n_folds=n_folds)
-    
-    #initialise the score list for returning
-    score_list = []
-    
-    #loop through splits of the data
-    for split, (train_index, test_index) in enumerate(kf, start=1):
-        
-        if verbose:
-            print 'training on {0} samples, testing on {1} samples'.format(len(train_index), len(test_index))
-        
-        #initialise multichannel lists of splits
-        X_train, X_test = [], []
-        
-        for c_X in X: # c_X ~ channel in X
-            
-            #get the values for this split-channel combination
-            c_X_train, c_X_test = c_X[train_index,:], c_X[test_index,:]
+    #just compute the gram matrix - useful for kfold cv
+    def compute_gram(self, X, Y):
+        return self.multichannel_chi2(X, Y, gram_type='comp')
 
-            #normalize
-            if normalize:
-            	normalizer = Normalizer(norm='l1')
-                c_X_train = normalizer.fit_transform(c_X_train)
-            	c_X_test = normalizer.transform(c_X_test)
-            
-            #add the values to this split's channel list
-            X_train.append(c_X_train)
-            X_test.append(c_X_test)
-        
-        #turn into multichannel tuples
-        X_train, X_test = tuple(X_train), tuple(X_test)
-        
-        #split the labels
-        y_train, y_test = y[train_index], y[test_index]
-        
-        #fit the model
-        model.fit(X_train, y_train)
-        
-        #score the model
-        score = model.score(X_test, y_test)
-        
-        if verbose:
-            print 'R^2 score on split {0}: {1}'.format(split, score)
-        
-        #append to the list
-        score_list.append(score)
-    
-    #return the list of scores
-    return score_list   
-
-#
-def multichannel_KFoldCV_opt(X, y, model_params={'C': 1}, n_folds=3, normalize=True, verbose=False):
+def multichannel_KFoldCV_opt(X_in, y, param_dict={'C': 1}, gamma_tuple=None, n_folds=3, verbose=False):
     #in this version - calculate the full gram matrix first and take slices of that
     #check data is multichannel
-    assert isinstance(X, tuple), 'multichannel input X must be a tuple'
-    #assert len(X)>1
-    #check model is MultiChannelSVR
-    assert isinstance(model, MultiChannelSVR), 'model must be instance of MultiChannelSVR class'
+    assert isinstance(X_in, tuple), 'multichannel input X must be a tuple'
 
-    K_train = chi2_kernel(X,X)
+    #do the gram calculation
+    K_compute_model = MultiChannelSVR(num_channels=len(X_in), gamma_tuple=gamma_tuple)
+    K_full = K_compute_model.compute_gram(X_in, X_in)
+
+    #for ease make X
+    X = K_full
     
     #number of samples
     n_X = X[0].shape[0]
@@ -189,30 +140,13 @@ def multichannel_KFoldCV_opt(X, y, model_params={'C': 1}, n_folds=3, normalize=T
             print 'training on {0} samples, testing on {1} samples'.format(len(train_index), len(test_index))
         
         #initialise multichannel lists of splits
-        X_train, X_test = [], []
-        
-        for c_X in X: # c_X ~ channel in X
-            
-            #get the values for this split-channel combination
-            c_X_train, c_X_test = c_X[train_index,:], c_X[test_index,:]
-
-            #normalize
-            if normalize:
-                normalizer = Normalizer(norm='l1')
-                c_X_train = normalizer.fit_transform(c_X_train)
-                c_X_test = normalizer.transform(c_X_test)
-            
-            #add the values to this split's channel list
-            X_train.append(c_X_train)
-            X_test.append(c_X_test)
-        
-        #turn into multichannel tuples
-        X_train, X_test = tuple(X_train), tuple(X_test)
+        X_train, X_test = X[train_index][:,train_index], X[test_index][:,train_index] #square kernel :)
         
         #split the labels
         y_train, y_test = y[train_index], y[test_index]
         
         #fit the model
+        model = SVR(kernel='precomputed', **param_dict)
         model.fit(X_train, y_train)
         
         #score the model
