@@ -3,16 +3,19 @@
 #include "Descriptors.h"
 #include "OpticalFlow.h"
 
+#include <sstream>
 #include <time.h>
 
 using namespace cv;
 
-int show_track = 0; // set show_track = 1, if you want to visualize the trajectories
+int show_track = 1; // set show_track = 1, if you want to visualize the trajectories
 
 int main(int argc, char** argv)
 {
 	VideoCapture capture;
-	char* video = argv[1];
+    char* video = argv[1];
+    std::stringstream s;
+    s << "traj_" << argv[1];//saving filename
 	int flag = arg_parse(argc, argv);
 	capture.open(video);
 
@@ -20,6 +23,12 @@ int main(int argc, char** argv)
 		fprintf(stderr, "Could not initialize capturing..\n");
 		return -1;
 	}
+
+	//record output -initialise video
+    int f_width = capture.get(CV_CAP_PROP_FRAME_WIDTH);
+    int f_height = capture.get(CV_CAP_PROP_FRAME_HEIGHT);
+    //VideoWriter clip(s.str().c_str(), CV_FOURCC('M', 'P', 'E', 'G'), 30, Size(f_width, f_height), true);
+	VideoWriter clip("out.avi", CV_FOURCC('M', 'P', 'E', 'G'), 30, Size(f_width, f_height), true);
 
 	int frame_num = 0;
 	TrackInfo trackInfo;
@@ -289,6 +298,7 @@ int main(int argc, char** argv)
 
 		if( show_track == 1 ) {
 			imshow( "DenseTrackStab", image);
+			clip.write(image);
 			c = cvWaitKey(3);
 			if((char)c == 27) break;
 		}
