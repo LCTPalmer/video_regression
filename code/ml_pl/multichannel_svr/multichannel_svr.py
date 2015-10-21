@@ -23,13 +23,14 @@ from sklearn.cross_validation import KFold
 import numpy as np
 
 #import theano implementation of chi-squared kernel if it exists
-try:
-	from theano_kernels import theano_chi2 as chi2_kernel
-	print 'Using Theano implementation of chi-squared kernel'
-except ImportError:
-	from sklearn.metrics.pairwise import chi2_kernel
-	print 'Using scikit-learn implementation of chi-squared kernel'
+# try:
+# 	from theano_kernels import theano_chi2 as chi2_kernel
+# 	print 'Using Theano implementation of chi-squared kernel'
+# except ImportError:
+# 	from sklearn.metrics.pairwise import chi2_kernel
+# 	print 'Using scikit-learn implementation of chi-squared kernel'
 
+from sklearn.metrics.pairwise import chi2_kernel
 #--------------------------------------------------------------------------
 
 class MultiChannelSVR():
@@ -60,6 +61,89 @@ class MultiChannelSVR():
             
             #raw gram matrix for this channel
             k = chi2_kernel(c_A, c_B, gamma=c_gamma)
+            
+            if gram_type == 'fit': # need to build the scale_fac
+                
+                #compute the scale factor
+                current_scale_fac = np.mean(k, axis=None)
+                self.scale_fac.append(current_scale_fac)
+                
+                #add to the array
+                gram_array[:,:,ii] = k / current_scale_fac
+                
+            elif gram_type == 'predict':
+                gram_array[:,:,ii] = k / self.scale_fac[ii]
+        
+        #make scale_fac immutable
+        if gram_type == 'fit':
+            self.scale_fac = tuple(self.scale_fac)
+        
+        return np.sum(gram_array, axis=2) # sum across channels          
+   
+    #fit the model
+    def fit(self, X, y):
+        K_train = self.multichannel_chi2(X, X, gram_type='fit') #calc the gram matrix
+        assert isinstance(self.scale_fac, tuple) #check attribute has been set and is a tuple
+        self.training_examples = X #retain for prediction
+        self.model.fit(K_train, y) #fit the model
+    
+    #predict labels for new observations
+    def predict(self, X):
+        if not hasattr(self, 'scale_fac'):
+            raise ValueError('gram matrix scaling factors not assigned - need to fit model')
+        K_test = self.multichannel_chi2(X, self.training_examples, gram_type='predict')
+        return self.model.predict(K_test)
+    
+    #R^2 between model.predict(X) and y
+    def score(self, X, y):
+        if not hasattr(self, 'scale_fac'):
+            raise ValueError('gram matrix scaling factors not assigned - need to fit model')
+        K_test = self.multichannel_chi2(X, self.training_examples, gram_type='predict')
+        return self.model.score(K_test, y)
+
+
+class MultiChannelSVR2():
+    '''
+    kernel_param_tuple is tuple of dicts of form: {'kernel_func': func_handle,
+                                                  'param_dict': {'param_1': 0.5,
+                                                                 'param_2': 1.0}
+                                                  }
+    '''
+
+    def __init__(self, num_channels, model_param_dict={'C': 1}, kernel_param_tuple=None):
+        self.num_channels = num_channels
+        self.model_param_dict = model_param_dict
+        self.model = SVR(kernel='precomputed', **self.model_param_dict)
+        self.kernel_param_tuple = kernel_param_tuple or \
+            tuple([ {'kernel_func': chi2_kernel, 'param_dict': {}} ] * num_channels) #default
+
+        #checks
+        assert len(self.kernel_param_tuple) == num_channels
+        import inspect
+        for c in kernel_param_tuple:
+            inspect.isfunction(c['kernel_func'])
+            isinstance(c['param_dict'], dict)
+    
+    #multichannel kernel computation
+    def multichannel_chi2(self, A, B, gram_type):
+        assert gram_type == 'fit' or gram_type == 'predict'
+        assert len(A) == len(B) == self.num_channels
+        assert isinstance(A, tuple)
+        assert isinstance(B, tuple)
+        
+        if gram_type == 'fit':
+            self.scale_fac = [] #initialise scale factor list
+        
+        #initialise the 3D gram array
+        n_A = A[0].shape[0] # number of observations
+        n_B = B[0].shape[0]
+        gram_array = np.empty((n_A, n_B, self.num_channels))
+        
+        #fill the array
+        for ii, (c_A, c_B, c_kern_params) in enumerate(zip(A,B,self.kernel_param_tuple)): #c_A ~ channel in A
+            
+            #raw gram matrix for this channel
+            k = c_kern_params['kernel_func'](c_A, c_B, **c_kern_params['param_dict'])
             
             if gram_type == 'fit': # need to build the scale_fac
                 
