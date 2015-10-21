@@ -164,11 +164,11 @@ class MultiChannelSVR2():
         return np.sum(gram_array, axis=2) # sum across channels          
    
     #fit the model
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weight=None):
         K_train = self.multichannel_chi2(X, X, gram_type='fit') #calc the gram matrix
         assert isinstance(self.scale_fac, tuple) #check attribute has been set and is a tuple
         self.training_examples = X #retain for prediction
-        self.model.fit(K_train, y) #fit the model
+        self.model.fit(K_train, y, sample_weight=sample_weight) #fit the model
     
     #predict labels for new observations
     def predict(self, X):
