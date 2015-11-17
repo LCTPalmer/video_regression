@@ -1,8 +1,9 @@
 # GPU/Theano implementations of common kernel functions
 #
-# Currently contains:
-#                     Radial Basis Function (theano_rbf)
-#                     Chi-Squared (theano_chi2)
+# Contains:
+#           theano_rbf (Radial Basis Function)
+#           theano_chi2 (Chi-Squared)
+#           theano_poly (Polynomial)
 #
 # Requires: 
 #           Theano
@@ -20,10 +21,6 @@ def theano_rbf(X, Y=None, gamma=.5):
 
     Optimised by expanding the ||x-y||^2 term and calculating dot 
     products on GPU.
-
-    Tested against sklearn.metrics.pairwise.rbf_kernel(). For X = Y of 
-    size(1500,4000) is ~6x faster using a GeForce 560 Ti than sklearn on
-    Intel Xeon W3520 quadcore CPU. 
 
     ----------------------------------------------------------------------
 
@@ -81,14 +78,9 @@ def theano_chi2(X, Y=None, gamma=1):
 
                K(x,y) = e ^ ( -gamma .* Sum[ (xi-yi)^2 / (xi+yi) ] )
                                          i
-
-    Tested against sklearn.metrics.pairwise.chi2_kernel(). For X = Y of 
-    size(1500,4000) is ~3.5x faster using a GeForce 560 Ti than sklearn on
-    Intel Xeon W3520 quadcore CPU. 
-
     ----------------------------------------------------------------------
     
-    usage:  K = theano_chi2(X, [Y=None, gamma=.5])
+    usage:  K = theano_chi2(X, [Y=None, gamma=1])
 
     input:  X - numpy array 2D
                     MxN array containing M observations of N features
@@ -164,3 +156,57 @@ def theano_chi2(X, Y=None, gamma=1):
 
     #return
     return f(X,Y).astype('Float64') #for ease with sklearn
+
+def theano_poly(X, Y=None, degree=3, coef0=1, gamma=1):
+
+    '''GPU implementation of polynomial kernel:
+
+               K(x,y) = Sum[ (gamma*xi*yi + coef0)^degree ]
+                         i
+    ----------------------------------------------------------------------
+    
+    usage:  K = theano_poly(X, [Y=None, degree=3, coef0=1, gamma=1])
+
+    input:  X - numpy array 2D
+                    MxN array containing M observations of N features
+
+            Y - numpy array 2D
+                    PxN array (note must have same number of columns as X)
+
+            degree- scalar
+                    dimension of polynomial (2 -> quadratic etc.)
+
+            coef0 - scalar
+
+            gamma - scalar
+
+    output: K - numpy array 2D
+                    MxP array of pairwise polynomial distances between
+                    observations in X and Y
+    '''
+
+    #set Y - if None -> X
+    if Y is None:
+        Y = X
+
+    #check dimensions
+    assert X.shape[1] == Y.shape[1], 'X and Y must be of same dimension'
+
+    #define the symbolic vars
+    x = T.matrix('x')
+    y = T.matrix('y')
+    
+    x_dot_y = T.dot(x,y.T)
+
+    #compile the theano function
+    f = theano.function(inputs=[x, y], outputs=x_dot_y)
+
+    #calc the dot products on GPU    
+    X = X.astype('Float32')
+    Y = Y.astype('Float32')
+    x_dot_y = f(X,Y).astype('Float64') #for ease with sklearn
+
+    #add together terms, multiply by gamma 
+    K = (gamma*x_dot_y + coef0)**degree
+
+    return K

@@ -4,26 +4,12 @@ import numpy as np
 from sklearn.preprocessing import Normalizer
 
 #chi2_kernel
-from theano_chi2 import theano_chi2
 from sklearn.metrics.pairwise import chi2_kernel
 
 #multichannel svr
 from multichannel_svr import MultiChannelSVR, multichannel_KFoldCV
 
 class TestMultiChannelSVR(unittest.TestCase):
-
-	def test_chi2_theano_equals_sklearn(self):
-
-		tolerance = .0001
-		X = np.random.random((100,100))
-		Y = np.random.random((200,100))
-		X[0,0] = 0 #check for zero entries in histograms - make sure not dividing by zero
-		theano_K = theano_chi2(X,Y)
-		sklearn_K = chi2_kernel(X,Y)
-		diff = np.abs(theano_K-sklearn_K)
-		num_above_tolerance = np.sum(diff>tolerance)
-
-		self.assertTrue(num_above_tolerance == 0)
 
 	def test_mcsvr(self):
 		X_channel = np.array([[0.1,0.5],[0.5, 0.1],[0.1,0.6],[0.7, 0.1]])
@@ -67,7 +53,7 @@ class TestMultiChannelSVR(unittest.TestCase):
 		mcsvr = MultiChannelSVR(num_channels=2)
 
 		#run a CV
-		score_list = multichannel_KFoldCV(mcsvr, X_train, Y, n_folds=2, normalize=True, verbose=True)
+		score_list = multichannel_KFoldCV(mcsvr, X_train, Y, n_folds=2, verbose=True)
 
 		#assertions
 		print score_list
