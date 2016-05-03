@@ -4,10 +4,10 @@ from hyperopt.mongoexp import MongoTrials
 def svr_lin_objective(input_dict):
     from sklearn.svm import SVR
     from sklearn.metrics.pairwise import linear_kernel
-    from multichannel.multichannel_model import MultiChannelModel, multichannel_KFoldCV
-    from multichannel.theano_kernels import theano_rbf as rbf_kernel, theano_chi2 as chi2_kernel
-    import csv, os, time, copy
+    from sklearn.externals import joblib
+    from multichannel import MultiChannelModel, multichannel_KFoldCV, theano_rbf as rbf_kernel, theano_chi2 as chi2_kernel
     import numpy as np
+    import csv, os, time
     
     #load the dataset
     dataset_root = '/home/luke/projects/THE_dataset' #directory where features/labels kept
@@ -15,9 +15,10 @@ def svr_lin_objective(input_dict):
     test_path = os.path.join(dataset_root, 'test_set_wc3d.pkl')
     X_train, y_train = joblib.load(train_path)
     X_test, y_test = joblib.load(test_path)
-    
-    kpt = {'kernel_func': linear_kernel, 'param_dict': {}}
+
+    #run the exp
     C = input_dict['C']
+    kpt = {'kernel_func': linear_kernel, 'param_dict': {}}
     model = SVR(kernel='precomputed', C=C)
     mcm = MultiChannelModel(num_channels=6, model=model, kernel_param_tuple=kpt)
     scores = multichannel_KFoldCV(mcm, X_train, y_train, n_folds=3, verbose=False)
@@ -27,8 +28,7 @@ def svr_lin_objective(input_dict):
     #logging
     with open('svr_lin_log.csv','a') as f:
         fc = csv.writer(f)
-        row = [loss, eval_time, C] + gammas
-        row = [str(a) for a in row]
+        row = [loss, eval_time, C]
         fc.writerow(row)
 
     print loss, input_dict

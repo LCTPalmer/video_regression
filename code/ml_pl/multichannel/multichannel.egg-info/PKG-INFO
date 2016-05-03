@@ -1,7 +1,7 @@
 Metadata-Version: 1.0
 Name: multichannel
 Version: 0.0.1
-Summary: The funniest joke in the world
+Summary: multichannel kernel support on top of sklearn models
 Home-page: UNKNOWN
 Author: Luke Palmer
 Author-email: lctpalmer@gmail.com

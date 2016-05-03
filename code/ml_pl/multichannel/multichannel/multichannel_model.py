@@ -1,14 +1,3 @@
-# Scikit-learn style class for multichannel support vector regression (SVR)
-# with chi-squared kernel. Implements fit, predict, and score methods.
-#
-# The multichannel data is taken as a tuple of 2D numpy arrays, where each
-# channel array contains the same number of observations and each row in
-# each channel array corresponds to the same observation (channels may have
-# a different number of columns/features).
-#
-# A function, multichannel_KFoldCV, is also included to conduct a k-fold cross-
-# validation procedure on a supplied MultiChannelSVR() model instance.
-
 from sklearn.svm import SVR
 from sklearn.cross_validation import KFold
 from sklearn.metrics.pairwise import chi2_kernel #for default multichannel kernel
@@ -21,17 +10,21 @@ import numpy as np
 
 class MultiChannelModel(object):
     '''
+    Scikit-learn style class for multichannel regression. Implements fit, 
+    predict, and score methods.
+
+    The multichannel data is taken as a tuple of 2D numpy arrays, where each
+    channel array contains the same number of observations and each row in
+    each channel array corresponds to the same observation (channels may have
+    a different number of columns/features).
+
     Initialisation arguments:
 
     num_channels - int:
         the number of channels of the data
 
     model - instance of sklearn model:
-        e.g. SVR() (which is default)
-
-    model_param_dict - dictionary:
-        parameters for the underlying sklearn.svm.SVR model, for details see:
-        http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
+        e.g. SVR(kernel='precomputed') (which is default)
 
     kernel_param_tuple - tuple of dicts of length num_channels, e.g.:
 
@@ -75,7 +68,8 @@ class MultiChannelModel(object):
         1d list/array of observation labels.
 
     fit_params - dict:
-        optional parameter dictionary to pass to the underlying SVR fit method.
+        optional parameter dictionary to pass to the underlying model fit method.
+
 
     Outputs:
         None
@@ -121,7 +115,9 @@ class MultiChannelModel(object):
     kpt = ({'kernel_func': chi2_kernel, 'param_dict': {'gamma': 1.5}},
            {'kernel_func': rbf_kernel, 'param_dict': {'gamma': 0.5}})
 
-    clf = MultiChannelSVR(num_channels=2, model_param_dict={'C': 10}, kernel_param_tuple=kpt)
+    underlying_model = sklearn.linear_model.Ridge(alpha=1) 
+
+    clf = MultiChannelModel(num_channels=2, model=underlying_model, kernel_param_tuple=kpt)
     clf.fit(X_train, y_train)
 
     X_test = ... 2-channel data
@@ -138,7 +134,7 @@ class MultiChannelModel(object):
         if channel_weights is None:
             self.channel_weights = np.ones(num_channels)
         else:
-            self.channel_weights = channel_weights
+            self.channel_weights = np.array(channel_weights)
         if self.channel_weights.ndim > 1:
             self.channel_weights = np.squeeze(self.channel_weights)
 
@@ -229,13 +225,14 @@ class MultiChannelModel(object):
 #multichannel k-fold cross-validation
 def multichannel_KFoldCV(model, X, y, n_folds=3, verbose=False, sample_weights=None):
     '''
-    simple k-fold cross-validation function for MultiChannelSVR instance.
+    simple k-fold cross-validation function for MultiChannelModel instance.
 
     Usage:
 
-    #setup the SVR model
+    #setup the multichannel model
+    model = sklearn.svc.SVR(kernel='precomputed', C=1) #SVR always needs precomputed kernel
     kpt = {'kernel_func': rbf_kernel, 'param_dict': {'gamma': 2}}
-    clf = MultiChannelSVR(num_channels=2, model_param_dict={'C': 1}, kernel_param_tuple=kpt)
+    clf = MultiChannelModel(num_channels=2, model=model, kernel_param_tuple=kpt)
 
     #get k-fold score on our trainnig data
     score_list = multichannel_KFoldCV(clf, X_train, y_train, n_folds=5)
@@ -251,7 +248,7 @@ def multichannel_KFoldCV(model, X, y, n_folds=3, verbose=False, sample_weights=N
     #checks
     assert isinstance(X, tuple), 'multichannel input X must be a tuple'
     assert model.num_channels == len(X)
-    #assert isinstance(model, MultiChannelModel), 'model must be instance of MultiChannelModel class'
+    assert isinstance(model, MultiChannelModel), 'model must be instance of MultiChannelModel class'
 
     #number of samples
     n_X = X[0].shape[0]
@@ -290,7 +287,7 @@ def multichannel_KFoldCV(model, X, y, n_folds=3, verbose=False, sample_weights=N
         sample_weights_train, sample_weights_test = sample_weights[train_index], sample_weights[test_index]
 
         #fit the model
-        model.fit(X_train, y_train)#, fit_params={'sample_weight': sample_weights_train})
+        model.fit(X_train, y_train, fit_params={'sample_weight': sample_weights_train})
 
         #score the model
         score = model.score(X_test, y_test)
