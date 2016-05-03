@@ -1,0 +1,14 @@
+Ridge
+
+    Linear kernel - C
+    rbf + chi2 - C + 6*Gamma
+
+SVR
+
+    Linear kernel - C
+    rbf + chi2 - C + 6*Gamma
+
+WeightedRidge
+    rbf + chi2 kernel only - C + 6*Gamma  
+    investigate channel weights in gram matrix calc
+        method - each channel has 3 possible weight values high, med, zero, compare all permutations of these (after L1 normalisation)

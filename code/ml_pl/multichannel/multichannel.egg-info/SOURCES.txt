@@ -1,0 +1,9 @@
+multichannel/__init__.py
+multichannel/multichannel_model.py
+multichannel/theano_kernels.py
+multichannel/weighted_ridge.py
+multichannel.egg-info/PKG-INFO
+multichannel.egg-info/SOURCES.txt
+multichannel.egg-info/dependency_links.txt
+multichannel.egg-info/not-zip-safe
+multichannel.egg-info/top_level.txt
