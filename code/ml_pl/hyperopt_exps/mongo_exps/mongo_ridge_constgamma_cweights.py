@@ -32,33 +32,36 @@ def objective(x):
     X_test, y_test = joblib.load(test_path)
 
     #run the exp
-    gammas = [x['traj_gamma'], x['hog_gamma'], x['hof_gamma'],
-              x['mbhx_gamma'], x['mbhy_gamma'], x['c3d_gamma']]
+    #set the krnel gammas set from previous experiment
+    gammas = [0.06386, 0.117941, 0.060457, 0.180092, 3405.482, 0.79326]
     kpt = create_kpt(6, gammas)
+
+    #set the alpha level
     alpha = x['alpha']
+
+    #set the channel weights
+    cw= [x['traj_cw'], x['hog_cw'], x['hof_cw'],
+         x['mbhx_cw'], x['mbhy_cw'], x['c3d_cw']]
+
     model = Ridge(alpha=alpha)
-    mcm = MultiChannelModel(num_channels=6, model=model, kernel_param_tuple=kpt)
+    mcm = MultiChannelModel(num_channels=6, model=model, kernel_param_tuple=kpt, channel_weights=cw)
     scores = multichannel_KFoldCV(mcm, X_train, y_train, n_folds=3, verbose=False)
     loss = 1-np.mean(scores)
     eval_time = time.time()
 
-    #logging
-    with open('ridge_nonlin_log.csv','a') as f:
-        fc = csv.writer(f)
-        row = [loss, eval_time, alpha] + gammas
-        fc.writerow(row)
-
-    print x, loss, 'time taken: {}'.format(time.time()-t0)
+    print 'params: {0}, loss: {1}, time taken: {2}'.format(x, loss, time.time()-t0)
     return {'loss': loss, 'eval_time': eval_time}
 
 
 ridge_nonlin_space= {'alpha': hp.lognormal('ridge_alpha', 0, 1.5),
-                 'traj_gamma': hp.lognormal('traj_gamma', 0, 1),
-                 'hog_gamma': hp.lognormal('hog_gamma', 0, 1),
-                 'hof_gamma': hp.lognormal('hof_gamma', 0, 1),
-                 'mbhx_gamma': hp.lognormal('mbhx_gamma', 0, 1),
-                 'mbhy_gamma': hp.lognormal('mbhy_gamma', 0, 1),
-                 'c3d_gamma': hp.lognormal('c3d_gamma', 0, 1)}
+                 'traj_cw': hp.uniform('traj_cw', 0, 1),
+                 'hog_cw': hp.uniform('hog_cw', 0, 1),
+                 'hof_cw': hp.uniform('hof_cw', 0, 1),
+                 'mbhx_cw': hp.uniform('mbhx_cw', 0, 1),
+                 'mbhy_cw': hp.uniform('mbhy_cw', 0, 1),
+                 'c3d_cw': hp.uniform('c3d_cw', 0, 1)}
 
-trials = MongoTrials('mongo://localhost:1234/ridge_nonlin/jobs')
+
+
+trials = MongoTrials('mongo://localhost:1234/ridge_constgamma_cweights/jobs')
 best = fmin(objective, space=ridge_nonlin_space, trials=trials, algo=tpe.suggest, max_evals=500)

@@ -5,7 +5,7 @@ def svr_lin_objective(input_dict):
     from sklearn.svm import SVR
     from sklearn.metrics.pairwise import linear_kernel
     from sklearn.externals import joblib
-    from multichannel import MultiChannelModel, multichannel_KFoldCV, theano_rbf as rbf_kernel, theano_chi2 as chi2_kernel
+    from multichannel import MultiChannelModel, multichannel_KFoldCV
     import numpy as np
     import csv, os, time
     
@@ -36,5 +36,5 @@ def svr_lin_objective(input_dict):
 
 
 svr_lin_space = {'C': hp.lognormal('svr_C', 0, 1)}
-trials = MongoTrials('mongo://localhost:1234/svr_lin/jobs', exp_key='exp1')
-best = fmin(svr_lin_objective, space=svr_lin_space, trials=trials, algo=tpe.suggest, max_evals=10)
+trials = MongoTrials('mongo://localhost:1234/svr_lin/jobs')
+best = fmin(svr_lin_objective, space=svr_lin_space, trials=trials, algo=tpe.suggest, max_evals=500)
